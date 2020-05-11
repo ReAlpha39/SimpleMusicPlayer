@@ -13,6 +13,7 @@ import android.os.IBinder;
 import android.os.PowerManager;
 import android.util.Log;
 import android.view.View;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Random;
@@ -136,9 +137,15 @@ public class MusicService extends Service implements
     }
 
     public void setShuffle(){
-        if(shuffle) shuffle=false;
-        else shuffle=true;
+        if(shuffle) {
+            shuffle=false;
+            Toast.makeText(this.getApplicationContext(), "Shuffle is Off", Toast.LENGTH_SHORT).show();
+        } else {
+            shuffle=true;
+            Toast.makeText(this.getApplicationContext(), "Shuffle is On", Toast.LENGTH_SHORT).show();
+        }
     }
+
 
     public void setSong(int songIndex){
         songPosn=songIndex;
