@@ -1,14 +1,19 @@
 package id.nyaa.musicplayer;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
+import android.Manifest;
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.view.Menu;
@@ -17,6 +22,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ListView;
 import android.widget.MediaController;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -24,6 +30,7 @@ import java.util.Comparator;
 
 public class MainActivity extends AppCompatActivity implements MediaController.MediaPlayerControl {
 
+    private static final int READ_STORAGE_PERMISSION_REQUEST_CODE = 0x3;
     private ArrayList<Song> songList;
     private ListView songView;
     private MusicService musicSrv;
@@ -39,21 +46,64 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        songView = (ListView)findViewById(R.id.song_list);
-        songList = new ArrayList<Song>();
-
-        getSongList();
-
-        Collections.sort(songList, new Comparator<Song>(){
-            public int compare(Song a, Song b){
-                return a.getTitle().compareTo(b.getTitle());
+        if (!checkPermissionForReadExtertalStorage()) {
+            try {
+                requestPermissionForReadExtertalStorage();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        });
+        } else {
+            songView = (ListView)findViewById(R.id.song_list);
+            songList = new ArrayList<Song>();
 
-        SongAdapter songAdt = new SongAdapter(this, songList);
-        songView.setAdapter(songAdt);
-        setController();
+            getSongList();
 
+            Collections.sort(songList, new Comparator<Song>(){
+                public int compare(Song a, Song b){
+                    return a.getTitle().compareTo(b.getTitle());
+                }
+            });
+
+            SongAdapter songAdt = new SongAdapter(this, songList);
+            songView.setAdapter(songAdt);
+            setController();
+        }
+
+    }
+
+    public boolean checkPermissionForReadExtertalStorage() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            int result = this.checkSelfPermission(Manifest.permission.READ_EXTERNAL_STORAGE);
+            return result == PackageManager.PERMISSION_GRANTED;
+        }
+        return false;
+    }
+
+    public void requestPermissionForReadExtertalStorage() {
+        try {
+            ActivityCompat.requestPermissions((Activity) this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                    READ_STORAGE_PERMISSION_REQUEST_CODE);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if(requestCode == READ_STORAGE_PERMISSION_REQUEST_CODE) {
+            if(grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                try {
+                    recreate();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                overridePendingTransition(0, 0);
+            } else {
+                Toast.makeText(MainActivity.this, "Permission Denied.", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 
     //connect to the service
@@ -77,11 +127,15 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
 
     @Override
     protected void onStart() {
-        super.onStart();
-        if(playIntent==null){
-            playIntent = new Intent(this, MusicService.class);
-            bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
-            startService(playIntent);
+        try {
+            super.onStart();
+            if(playIntent==null){
+                playIntent = new Intent(this, MusicService.class);
+                bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
+                startService(playIntent);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
