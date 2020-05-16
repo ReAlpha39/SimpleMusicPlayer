@@ -238,6 +238,7 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
 
     @Override
     protected void onDestroy() {
+        if (musicBound) unbindService(musicConnection);
         stopService(playIntent);
         musicSrv=null;
         super.onDestroy();
