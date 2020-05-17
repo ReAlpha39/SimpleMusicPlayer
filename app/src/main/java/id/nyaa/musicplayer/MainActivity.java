@@ -140,6 +140,9 @@ public class MainActivity extends AppCompatActivity implements MediaController.M
     }
 
     public void songPicked(View view){
+        if (controller.isEnabled()) {
+            controller.hide();
+        }
         musicSrv.setSong(Integer.parseInt(view.getTag().toString()));
         musicSrv.playSong();
         if(playbackPaused){
